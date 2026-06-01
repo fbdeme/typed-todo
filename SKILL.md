@@ -162,6 +162,41 @@ Output a short summary at the end: how many promoted, how many archived, what sh
 
 Just the "today" view from above. No need for full review machinery.
 
+## Publishing the vault
+
+The vault has two audiences:
+
+- **The machine / you-in-Claude** read the raw graph — the scattered node files
+  under `tasks/`, `projects/`, etc. Frontmatter is the source of truth.
+- **A human (you, on GitHub)** reads `OVERVIEW.md` — a compiled dashboard.
+
+`OVERVIEW.md` is **generated, never hand-edited**. Regenerate it with the
+deterministic renderer (stdlib Python, no dependencies):
+
+```bash
+python3 <skill-dir>/scripts/render-overview.py [VAULT_PATH]
+# VAULT_PATH defaults to $TYPED_TODO_VAULT or ~/todo
+# writes <vault>/OVERVIEW.md
+```
+
+When the user says "overview 갱신해줘", "render my overview", "publish my
+todos", "push my vault", or after any batch of edits that meaningfully changes
+the dashboard:
+
+1. Run `render-overview.py` to refresh `OVERVIEW.md`.
+2. If the vault is a git repo (`<vault>/.git` exists), and the user asked to
+   publish/push, stage and commit the changed node files **and** the
+   regenerated `OVERVIEW.md`, then push. Follow the home `CLAUDE.md` rule:
+   only commit/push when the user explicitly asks.
+3. If the vault is **not** yet a repo and the user wants to publish, offer to
+   run `scripts/init-vault.sh <vault> --git` (which `git init`s the vault and
+   writes a `.gitignore` excluding derived `dist/`/`*.ttl`). The user creates
+   the GitHub repo and decides public vs **private** — todos are personal data,
+   so default the suggestion to `--private`.
+
+Do not auto-commit on every edit. Render is cheap and safe to run anytime;
+pushing is an explicit, human-gated action.
+
 ## Ontology enforcement — the discipline
 
 Things this skill must refuse, even if asked:

@@ -33,9 +33,56 @@ After installing the skill, create the vault at `~/todo/` (or set `$TYPED_TODO_V
 
 ```bash
 ~/.claude/skills/typed-todo/scripts/init-vault.sh
+
+# ...or make the vault its own git repo at the same time:
+~/.claude/skills/typed-todo/scripts/init-vault.sh ~/todo --git
 ```
 
 The script is idempotent — re-running it never overwrites existing files.
+
+## Two views: raw graph vs. OVERVIEW.md
+
+A vault has two audiences:
+
+- **The machine** (you, in Claude) reads the **raw graph** — the node files
+  under `tasks/`, `projects/`, `areas/`, `people/`, `resources/`. Frontmatter
+  is the source of truth.
+- **A human** (you, on GitHub) reads **`OVERVIEW.md`** — a compiled dashboard
+  showing active projects with progress bars, what's due this week, overdue
+  items, blocked chains, work by area, recent wins, and anything needing triage.
+
+`OVERVIEW.md` is **generated, never hand-edited**. Regenerate it any time with
+the deterministic renderer (stdlib Python, zero dependencies):
+
+```bash
+python3 ~/.claude/skills/typed-todo/scripts/render-overview.py
+# defaults to $TYPED_TODO_VAULT or ~/todo; writes <vault>/OVERVIEW.md
+# --date YYYY-MM-DD to override "today"; -o - to print to stdout
+```
+
+Same vault state → same output (dates only, no clock time), so git diffs stay
+quiet within a day.
+
+## Publish the vault as a repo
+
+The idea: the machine maintains the graph locally; you push the vault to GitHub
+so the rendered `OVERVIEW.md` is your at-a-glance status page.
+
+```bash
+# 1. make the vault a repo (if you didn't pass --git at init)
+cd ~/todo && git init -b main
+
+# 2. render the dashboard
+python3 ~/.claude/skills/typed-todo/scripts/render-overview.py
+
+# 3. publish — todos are personal, so default to private
+git add -A && git commit -m "todo snapshot"
+gh repo create my-todos --private --source=. --push
+```
+
+A typical loop: edit nodes (or ask the skill to) → re-render → commit → push.
+You can wire steps 2–3 into a git pre-commit hook or a cron job if you want the
+overview to stay fresh automatically.
 
 ## Invoking the skill
 
