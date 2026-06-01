@@ -82,6 +82,41 @@ When the user says "프로젝트 추가: ICLR 논문":
 
 Same pattern with the appropriate template. Areas are rare additions — once `research`, `health`, `admin`, etc. are in place, new Areas indicate a real life-domain shift, not a project.
 
+### Bulk planning ingestion (roadmap → graph)
+
+This is the headline workflow. When the user dumps a **multi-step plan,
+roadmap, or phased timeline** (a numbered list of stages, each with deadlines
+and several actions), do **not** capture it as one flat task or a pile of
+unconnected tasks. Decompose it into the graph:
+
+1. **Umbrella Project.** Identify the overarching outcome → one Project.
+   `definition_of_done` = the end goal; `due` = the final deadline.
+2. **Phases → sub-projects.** Each stage that has its own deadline *and*
+   multiple actions becomes a Project with `subproject_of:` the umbrella, its
+   own `definition_of_done`, and its own `due`.
+3. **Atomic stage → Task.** A stage that is a single action (not a bundle)
+   becomes a Task `for:` the umbrella directly — don't inflate it into a
+   sub-project.
+4. **Actions → Tasks.** Each concrete action becomes a Task `for:` the right
+   (sub-)project. Convert every relative date ("~6월 30일", "8월", "즉시") to an
+   absolute ISO `due`. Set `priority: high` for urgent/immediate items.
+5. **Infer `blocks` edges from the plan's logic.** "Need X before Y",
+   artifacts that feed later steps (e.g. an arXiv link needed for outreach
+   emails), results that gate submission — wire these as `blocks` on the
+   upstream task. This is what makes the dependency view light up.
+6. **Extract Resources.** Papers, prior work, datasets mentioned as things the
+   work is *about* → Resource nodes, linked via `about`.
+7. **Stay closed-world on People.** Abstractly-mentioned people ("target
+   professors", "peer reviewers") are NOT Person nodes yet. Create them only
+   when they become concrete (a named person), then wire `involves`.
+8. **Render + (optionally) publish.** After writing all nodes, run
+   `render-overview.py` so `OVERVIEW.md` reflects the new graph. Push only if
+   the user asks (see *Publishing the vault*).
+
+Before or right after writing, show the user a short decomposition summary
+(umbrella + phases + which actions went where) so they can correct the
+modeling — a wrong phase boundary is cheap to fix early, expensive later.
+
 ### Inbox capture
 
 For "todo 추가해" / "메모해두자" without enough structure for a full node, append a single line to `inbox.md`:
@@ -169,6 +204,12 @@ The vault has two audiences:
 - **The machine / you-in-Claude** read the raw graph — the scattered node files
   under `tasks/`, `projects/`, etc. Frontmatter is the source of truth.
 - **A human (you, on GitHub)** reads `OVERVIEW.md` — a compiled dashboard.
+
+`OVERVIEW.md` opens with an **At a glance** project tree — every top-level
+project with its tasks as checkboxes (`[x]` done, `⏳` in-progress), sub-projects
+nested beneath, due dates inline (`⚠️` overdue) — followed by detail sections
+(per-project progress bars, due-this-week, blocked chains, by-area, recent
+wins, triage). The tree is the one-glance summary; the sections are the detail.
 
 `OVERVIEW.md` is **generated, never hand-edited**. Regenerate it with the
 deterministic renderer (stdlib Python, no dependencies):

@@ -48,8 +48,14 @@ A vault has two audiences:
   under `tasks/`, `projects/`, `areas/`, `people/`, `resources/`. Frontmatter
   is the source of truth.
 - **A human** (you, on GitHub) reads **`OVERVIEW.md`** — a compiled dashboard
-  showing active projects with progress bars, what's due this week, overdue
-  items, blocked chains, work by area, recent wins, and anything needing triage.
+  that opens with an **At a glance** project tree (each project and its tasks as
+  nested checkboxes with inline due dates), then detail sections: active
+  projects with progress bars, what's due this week, overdue items, blocked
+  chains, work by area, recent wins, and anything needing triage.
+
+It also handles **bulk planning**: dump a multi-step roadmap (phased stages with
+deadlines) and the skill decomposes it into an umbrella project, phase
+sub-projects, tasks, and inferred `blocks` dependencies — not a flat checklist.
 
 `OVERVIEW.md` is **generated, never hand-edited**. Regenerate it any time with
 the deterministic renderer (stdlib Python, zero dependencies):
