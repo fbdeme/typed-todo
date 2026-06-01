@@ -152,6 +152,57 @@ def render(nodes: dict[str, list[dict]], today: dt.date) -> str:
     w(f"| People · Resources | {len(people)} · {len(resources)} |")
     w("")
 
+    # ---- At a glance (project tree) --------------------------------------
+    w("## At a glance")
+    w("")
+    if not active_projects:
+        w("_No active projects._")
+        w("")
+    else:
+        # children index by parent project id; roots = active projects with no parent
+        children: dict[str, list[dict]] = {}
+        for p in active_projects:
+            parent = p.get("subproject_of")
+            if parent:
+                children.setdefault(parent, []).append(p)
+        root_ids = {p.get("id") for p in active_projects} - {
+            c.get("id") for kids in children.values() for c in kids
+        }
+        roots = [p for p in active_projects if p.get("id") in root_ids]
+
+        # direct (non-archived) tasks per project
+        tasks_for: dict[str, list[dict]] = {}
+        for t in tasks:
+            if t.get("status") == "archived":
+                continue
+            for pid in t.get("for") or []:
+                tasks_for.setdefault(pid, []).append(t)
+
+        def due_key(t):
+            return (parse_date(t.get("due")) or dt.date.max, t.get("id", ""))
+
+        def emit(p, depth):
+            ind = "  " * depth
+            pid = p.get("id", "?")
+            d, tot = project_progress(pid, tasks)
+            w(f"{ind}- **{pid}** ({d}/{tot})")
+            for t in sorted(tasks_for.get(pid, []), key=due_key):
+                box = "[x]" if t.get("status") == "done" else "[ ]"
+                wip = " ⏳" if t.get("status") == "in_progress" else ""
+                due = t.get("due")
+                due_s = ""
+                if due:
+                    dd = parse_date(due)
+                    due_s = f" · {due}{' ⚠️' if dd and dd < today else ''}"
+                desc = t.get("description", t.get("id", "?"))
+                w(f"{ind}  - {box} {desc}{wip}{due_s}")
+            for c in sorted(children.get(pid, []), key=lambda x: x.get("id", "")):
+                emit(c, depth + 1)
+
+        for r in sorted(roots, key=lambda x: x.get("id", "")):
+            emit(r, 0)
+        w("")
+
     # ---- Active projects --------------------------------------------------
     w("## Active projects")
     w("")
